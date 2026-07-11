@@ -1,0 +1,42 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Issue Triage
+        id: claude-triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowed-tools Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label list:*)'
+          prompt: |
+            Estás analizando el issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }}.
+
+            Objetivo:
+            1. Lee el issue completo con `gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments`.
+            2. Genera una descripción general del problema, clara y entendible, que sirva como punto de partida para implementar una solución. Incluye:
+               - Un resumen breve del problema o solicitud.
+               - El contexto o motivación si se puede inferir.
+               - Una lista de puntos concretos a resolver o criterios de aceptación.
+            3. Revisa las labels existentes del repositorio con `gh label list` y aplica al issue las que correspondan (por ejemplo bug, enhancement, documentation, question, good first issue, help wanted) usando `gh issue edit ${{ github.event.issue.number }} --add-label "<label>"`. No crees labels nuevas; usa únicamente las que ya existen en el repositorio. No agregues labels que no apliquen, y quita (con --remove-label) las que ya no correspondan si el issue fue editado y cambió de naturaleza.
+            4. Publica o actualiza un comentario en el issue con tu resumen:
+               - Busca en los comentarios existentes uno que empiece con el marcador `<!-- claude-issue-summary -->`.
+               - Si existe, actualízalo con `gh issue comment ${{ github.event.issue.number }} --edit-last` solo si el último comentario es el tuyo; si no puedes editar el comentario existente de forma segura, simplemente publica uno nuevo con `gh issue comment ${{ github.event.issue.number }} --body "..."`, siempre incluyendo el marcador `<!-- claude-issue-summary -->` al inicio del cuerpo para poder identificarlo en el futuro.
+               - El comentario debe estar en español, ser claro, y estructurado con encabezados markdown (Resumen, Contexto, Puntos a resolver).
+
+            No modifiques código ni abras pull requests: esta tarea es solo de triage y documentación del issue.
