@@ -23,7 +23,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          claude_args: '--allowed-tools Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label list:*)'
+          claude_args: '--allowed-tools Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label list:*),Bash(gh api:*)'
           prompt: |
             Estás analizando el issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }}.
 
@@ -35,8 +35,9 @@ jobs:
                - Una lista de puntos concretos a resolver o criterios de aceptación.
             3. Revisa las labels existentes del repositorio con `gh label list` y aplica al issue las que correspondan (por ejemplo bug, enhancement, documentation, question, good first issue, help wanted) usando `gh issue edit ${{ github.event.issue.number }} --add-label "<label>"`. No crees labels nuevas; usa únicamente las que ya existen en el repositorio. No agregues labels que no apliquen, y quita (con --remove-label) las que ya no correspondan si el issue fue editado y cambió de naturaleza.
             4. Publica o actualiza un comentario en el issue con tu resumen:
-               - Busca en los comentarios existentes uno que empiece con el marcador `<!-- claude-issue-summary -->`.
-               - Si existe, actualízalo con `gh issue comment ${{ github.event.issue.number }} --edit-last` solo si el último comentario es el tuyo; si no puedes editar el comentario existente de forma segura, simplemente publica uno nuevo con `gh issue comment ${{ github.event.issue.number }} --body "..."`, siempre incluyendo el marcador `<!-- claude-issue-summary -->` al inicio del cuerpo para poder identificarlo en el futuro.
-               - El comentario debe estar en español, ser claro, y estructurado con encabezados markdown (Resumen, Contexto, Puntos a resolver).
+               - Primero busca en los comentarios existentes (`gh issue view ${{ github.event.issue.number }} --json comments`) uno que empiece con el marcador `<!-- claude-issue-summary -->`.
+               - Si NO existe ningún comentario con ese marcador (por ejemplo, la primera vez que se analiza el issue), debes CREAR uno nuevo con `gh issue comment ${{ github.event.issue.number }} --body "..."`, incluyendo el marcador `<!-- claude-issue-summary -->` como primera línea del cuerpo.
+               - Si SÍ existe un comentario con ese marcador, actualízalo en lugar de crear uno nuevo: usa `gh issue comment ${{ github.event.issue.number }} --edit-last` si ese comentario con el marcador es efectivamente el último comentario del issue; si no es el último, edítalo directamente con `gh api` (`PATCH /repos/${{ github.repository }}/issues/comments/<comment_id>` con el nuevo `body`) usando el `id` del comentario obtenido en el paso anterior.
+               - El comentario debe estar redactado en español, en un Markdown bien formado y fácil de leer: usa encabezados (`## Resumen`, `## Contexto`, `## Puntos a resolver`), listas con viñetas o numeradas para los puntos de acción, y texto en negrita para resaltar los elementos clave. Evita párrafos largos sin estructura.
 
             No modifiques código ni abras pull requests: esta tarea es solo de triage y documentación del issue.
