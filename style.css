@@ -178,6 +178,31 @@ body {
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
+/* ---- Selector de skin ---- */
+#skin-select {
+  background: var(--btn-bg);
+  color: var(--btn-color);
+  border: 1px solid var(--board-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: background 0.15s;
+}
+
+#skin-select:hover {
+  background: var(--btn-hover);
+}
+
+/* ---- Skin: Neon fuerza fondo oscuro en el tablero ---- */
+[data-skin="neon"] #board,
+[data-skin="neon"] #next-canvas {
+  background: #000000;
+  border-color: #1a1a1a;
+}
+
 /* ---- Controles ---- */
 .controls ul {
   list-style: none;
