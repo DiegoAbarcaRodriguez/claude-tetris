@@ -41,9 +41,15 @@ const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeToggle = document.getElementById('theme-toggle');
 const skinSelect = document.getElementById('skin-select');
+const pauseOptions = document.getElementById('pause-options');
+const resumeBtn = document.getElementById('resume-btn');
+const controlsToggleBtn = document.getElementById('controls-toggle-btn');
+const pauseControlsList = document.getElementById('pause-controls-list');
+const startLevelSelect = document.getElementById('start-level-select');
 
 const THEME_KEY = 'tetris-theme';
 const SKIN_KEY = 'tetris-skin';
+const MAX_START_LEVEL = 10;
 
 const PASTEL_COLORS = [
   null,
@@ -65,7 +71,7 @@ const SKINS = {
 
 let currentSkin = 'retro';
 
-let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, gridLineColor;
+let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, gridLineColor, startLevel;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -307,6 +313,7 @@ function endGame() {
   cancelAnimationFrame(animId);
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
+  pauseOptions.classList.add('hidden');
   overlay.classList.remove('hidden');
 }
 
@@ -314,12 +321,17 @@ function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    pauseOptions.classList.add('hidden');
+    overlay.classList.add('hidden');
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
     overlayTitle.textContent = 'PAUSA';
     overlayScore.textContent = '';
+    pauseControlsList.classList.add('hidden');
+    controlsToggleBtn.textContent = 'Ver controles';
+    pauseOptions.classList.remove('hidden');
     overlay.classList.remove('hidden');
   }
 }
@@ -344,22 +356,23 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  level = startLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = Math.max(100, 1000 - (level - 1) * 90);
   dropAccum = 0;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
   updateHUD();
+  pauseOptions.classList.add('hidden');
   overlay.classList.add('hidden');
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
@@ -384,6 +397,30 @@ document.addEventListener('keydown', e => {
 });
 
 restartBtn.addEventListener('click', init);
+
+resumeBtn.addEventListener('click', () => {
+  if (paused) togglePause();
+});
+
+controlsToggleBtn.addEventListener('click', () => {
+  const willShow = pauseControlsList.classList.contains('hidden');
+  pauseControlsList.classList.toggle('hidden', !willShow);
+  controlsToggleBtn.textContent = willShow ? 'Ocultar controles' : 'Ver controles';
+});
+
+function populateStartLevelSelect() {
+  for (let lvl = 1; lvl <= MAX_START_LEVEL; lvl++) {
+    const option = document.createElement('option');
+    option.value = String(lvl);
+    option.textContent = String(lvl);
+    startLevelSelect.appendChild(option);
+  }
+  startLevelSelect.value = String(startLevel);
+}
+
+startLevelSelect.addEventListener('change', () => {
+  startLevel = parseInt(startLevelSelect.value, 10) || 1;
+});
 
 function getGridLineColor() {
   return getComputedStyle(document.documentElement).getPropertyValue('--grid-line').trim();
@@ -426,6 +463,8 @@ skinSelect.addEventListener('change', () => {
   applySkin(skin);
 });
 
+startLevel = 1;
+populateStartLevelSelect();
 initTheme();
 initSkin();
 init();
